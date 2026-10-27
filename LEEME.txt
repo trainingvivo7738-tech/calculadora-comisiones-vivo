@@ -1,0 +1,17 @@
+CALCULADORA DE COMISIONES vivo — PAQUETE PWA
+
+Contenido:
+- index.html: calculadora compacta
+- manifest.webmanifest: nombre, colores e iconos de la PWA
+- service-worker.js: caché para abrir la aplicación sin conexión tras la primera visita
+- icon-192.png e icon-512.png: iconos de la aplicación
+
+IMPORTANTE:
+Este ZIP no se instala directamente como una app ni se abre desde file:// para instalarse como PWA.
+Para instalarla como PWA, sube todos los archivos y conserva esta estructura en un hosting HTTPS
+(por ejemplo, GitHub Pages). Después abre el enlace publicado en Chrome para Android y elige
+"Instalar aplicación" o "Añadir a pantalla de inicio".
+
+Las cantidades guardadas en el almacenamiento local del navegador son independientes en cada teléfono.
+La primera visita requiere internet para descargar los archivos; después, el service worker permite
+cargar la aplicación sin conexión si la caché se completó correctamente.

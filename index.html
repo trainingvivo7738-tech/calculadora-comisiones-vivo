@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calculadora de comisiones vivo — por cantidades</title>
+<style>
+:root{font-family:system-ui,Arial,sans-serif;color:#202536;background:#f3f5fa}
+*{box-sizing:border-box}body{margin:0}header{background:#172b7a;color:#fff;padding:20px 16px}
+h1{font-size:22px;margin:0 0 6px}.wrap{max-width:900px;margin:auto;padding:14px}
+.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px #0000000a}
+h2{font-size:18px;color:#172b7a;margin:0 0 12px}
+.note{font-size:12px;color:#626b80;line-height:1.5}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+@media(min-width:650px){.stats{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.stat{background:#f1f5ff;border-radius:10px;padding:11px}.stat small{display:block;color:#626b80}.stat strong{font-size:20px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+button{font:inherit;border:0;border-radius:9px;padding:10px 13px;font-weight:700;cursor:pointer}
+.resetbar{display:flex;justify-content:flex-end;margin:0 0 12px}
+.resetbtn{background:#fff0f0;color:#9a2525;border:1px solid #f2d4d4;font-size:13px;padding:8px 11px}
+details.family{border:1px solid #e6eaf3;border-radius:11px;margin:8px 0;overflow:hidden;background:#fff}
+details.family summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 12px;font-weight:750;color:#172b7a;background:#f7f8fc}
+details.family summary::-webkit-details-marker{display:none}
+details.family summary::after{content:'＋';font-size:18px;color:#172b7a}
+details.family[open] summary::after{content:'−'}
+.family-count{font-size:12px;font-weight:600;color:#626b80;margin-left:auto;white-space:nowrap}
+.model-list{padding:0 10px 8px}
+.primary{background:#172b7a;color:#fff}.secondary{background:#e9edfa;color:#172b7a}.danger{background:#fff0f0;color:#9a2525}
+.group{margin:18px 0 8px;color:#172b7a;font-weight:800;border-bottom:1px solid #e8ebf2;padding-bottom:6px}
+.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:300px}
+td,th{text-align:left;padding:9px 6px;border-bottom:1px solid #e8ebf2;font-size:14px}
+th{font-size:12px;color:#626b80}td.qty{text-align:right;width:110px}
+input[type=number]{width:88px;max-width:100%;padding:9px;border:1px solid #d9deea;border-radius:8px;font:inherit;text-align:right}
+.summaryline{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #edf0f6}
+.summaryline:last-child{border:0}.grand{font-size:20px;font-weight:800;color:#172b7a}
+.feedback{font-weight:650;margin-top:10px;min-height:20px}
+</style>
+
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#064de0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Comisiones vivo">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+
+</head>
+<body>
+<header><h1>Calculadora de comisiones vivo</h1><div>Registra el total vendido de cada modelo durante el mes, sin capturar cada venta por separado.</div></header>
+<main class="wrap">
+<section class="card">
+<h2>Captura las cantidades vendidas</h2>
+<p class="note">Escribe cuántas unidades vendiste de cada modelo durante el mes. Puedes dejar en cero los modelos que no vendiste. Los cambios se calculan automáticamente y se guardan en este navegador.</p>
+<div class="resetbar"><button class="resetbtn" id="zero" type="button">Borrar todas las cantidades</button></div><div id="models"></div>
+<div id="feedback" class="feedback" aria-live="polite"></div>
+</section>
+<section class="card">
+<h2>Resumen del mes</h2>
+<div class="stats">
+<div class="stat"><small>Ventas totales</small><strong id="total">0</strong></div>
+<div class="stat"><small>Ventas de series elegibles</small><strong id="series">0</strong></div>
+<div class="stat"><small>Nivel aplicado</small><strong id="tier">0%</strong></div>
+<div class="stat"><small>Total bruto estimado</small><strong id="topTotal">$0</strong></div>
+</div>
+<p class="note">El nivel usa el más alto alcanzado por volumen total o por ventas de series elegibles. V FE, V Lite, V, X y Y31d cuentan para el contador de series.</p>
+</section>
+<section class="card">
+<h2>Resultado del cálculo</h2>
+<div class="summaryline"><span>Comisiones por celulares</span><strong id="comm">$0</strong></div>
+<div class="summaryline"><span>Bono por volumen total</span><strong id="bonusV">$0</strong></div>
+<div class="summaryline"><span>Bono por series V/X/Y31d</span><strong id="bonusS">$0</strong></div>
+<div class="summaryline grand"><span>Total bruto estimado</span><strong id="grand">$0</strong></div>
+<p id="threshold" class="note"></p>
+</section>
+<section class="card">
+<h2>Reglas incluidas</h2>
+<p class="note"><b>Niveles:</b> 50% con 20–29 ventas totales o 6–8 de series; 75% con 30–39 totales o 9–11 de series; 100% con 40–59 totales o 12 o más de series; 110% con 60–79 totales; 120% con 80 o más totales. Mínimo de 20 ventas para cobrar comisión.</p>
+<p class="note"><b>Bonos por volumen total:</b> 40–49 = $500; 50–59 = $1,000; 60–79 = $1,500; 80–99 = $2,000; 100+ = $2,500. <b>Bonos por series:</b> 12–14 = $500; 15–17 = $1,000; 18–23 = $1,500; 24–29 = $2,000; 30+ = $2,500.</p>
+<p class="note">El cálculo es una estimación bruta y no descuenta faltas u otros ajustes que no estén incluidos en estas reglas.</p>
+</section>
+</main>
+<script>
+const models = [
+{family:"Serie X",name:"X300 Pro",series:true,rate:[1000,1000,1000,1000,1000,1000]},
+{family:"Serie V",name:"V50",series:true,rate:[0,300,450,600,660,720]},
+{family:"Serie V",name:"V40",series:true,rate:[0,300,450,600,660,720]},
+{family:"Serie V",name:"V30",series:true,rate:[0,300,450,600,660,720]},
+{family:"Serie V",name:"V70",series:true,rate:[0,300,450,600,660,720]},
+{family:"Serie V FE",name:"V70 FE",series:true,rate:[0,250,375,500,550,600]},
+{family:"Serie V Lite",name:"V80 Lite 5G",series:true,rate:[0,175,262,350,385,420]},
+{family:"Serie V Lite",name:"V60 Lite 5G",series:true,rate:[0,175,262,350,385,420]},
+{family:"Serie V Lite",name:"V60 Lite 4G",series:true,rate:[0,175,262,350,385,420]},
+{family:"Serie V Lite",name:"V50 Lite 5G",series:true,rate:[0,175,262,350,385,420]},
+{family:"Serie V Lite",name:"V50 Lite 4G",series:true,rate:[0,175,262,350,385,420]},
+{family:"Serie Y — gama alta",name:"Y31d (4+256 & 6+256)",series:true,rate:[0,80,120,160,175,190]},
+{family:"Serie Y — gama alta",name:"Y29",series:false,rate:[0,80,120,160,175,190]},
+{family:"Serie Y — gama alta",name:"Y28 (256G)",series:false,rate:[0,80,120,160,175,190]},
+{family:"Serie Y — gama media",name:"Y21 D (256GB)",series:false,rate:[0,40,60,80,88,96]},
+{family:"Serie Y — gama media",name:"Y19 s",series:false,rate:[0,40,60,80,88,96]},
+{family:"Serie Y — gama media",name:"Y11d",series:false,rate:[0,60,90,120,132,144]},
+{family:"Serie Y — gama de entrada",name:"Y05",series:false,rate:[0,30,45,60,66,72]},
+{family:"Serie Y — gama de entrada",name:"Y04",series:false,rate:[0,10,15,20,22,24]},
+{family:"Modelos por rango de precio",name:"Modelo 10 K+",series:false,rate:[0,200,300,400,440,480]},
+{family:"Modelos por rango de precio",name:"Modelo 5-10 K",series:false,rate:[0,50,75,100,110,120]},
+{family:"Modelos por rango de precio",name:"Modelo 5K-",series:false,rate:[0,5,7,10,11,12]}
+];
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(n);
+let quantities = {};
+try { const raw=localStorage.getItem('vivoMonthlyQuantitiesV1'); const data=raw?JSON.parse(raw):{}; if(data&&typeof data==='object') quantities=data; } catch(e) { quantities={}; }
+models.forEach((m,i)=>{const n=Number(quantities[i]);quantities[i]=Number.isInteger(n)&&n>=0?n:0;});
+function buildTable(){
+ const host=$('models'); host.replaceChildren();
+ const groups=[];
+ models.forEach((m,i)=>{
+   let g=groups.find(x=>x.family===m.family);
+   if(!g){g={family:m.family,items:[]};groups.push(g);}
+   g.items.push({m,i});
+ });
+ groups.forEach(g=>{
+   const details=document.createElement('details');details.className='family';
+   const summary=document.createElement('summary');
+   const label=document.createElement('span');label.textContent=g.family;summary.appendChild(label);
+   const count=document.createElement('span');count.className='family-count';
+   const updateCount=()=>{const n=g.items.reduce((s,x)=>s+quantities[x.i],0);count.textContent=n+' vendidas';};
+   updateCount();summary.appendChild(count);details.appendChild(summary);
+   const list=document.createElement('div');list.className='model-list';
+   g.items.forEach(({m,i})=>{
+     const row=document.createElement('div');row.className='tablewrap';
+     const table=document.createElement('table');const tr=document.createElement('tr');
+     const name=document.createElement('td');name.textContent=m.name+(m.series?' • cuenta para series':'');tr.appendChild(name);
+     const qty=document.createElement('td');qty.className='qty';
+     const input=document.createElement('input');input.type='number';input.min='0';input.step='1';input.inputMode='numeric';input.setAttribute('aria-label','Cantidad vendida de '+m.name);input.value=quantities[i]===0?'':quantities[i];input.dataset.index=i;
+     const apply=()=>{let v=input.value===''?0:Number(input.value);if(!Number.isFinite(v)||v<0)v=0;v=Math.floor(v);input.value=v===0?'':v;quantities[i]=v;save();render();updateCount();};
+     input.addEventListener('change',apply);
+     input.addEventListener('input',()=>{if(input.value===''){quantities[i]=0;save();render();updateCount();return;}let v=Number(input.value);if(!Number.isFinite(v)||v<0)return;quantities[i]=Math.floor(v);save();render();updateCount();});
+     qty.appendChild(input);tr.appendChild(qty);table.appendChild(tr);row.appendChild(table);list.appendChild(row);
+   });
+   details.appendChild(list);host.appendChild(details);
+ });
+}
+function totalCount(){return models.reduce((n,m,i)=>n+quantities[i],0)}
+function seriesCount(){return models.reduce((n,m,i)=>n+(m.series?quantities[i]:0),0)}
+function tierIndex(total,series){let t=0;if(total>=20&&total<=29)t=Math.max(t,1);if(total>=30&&total<=39)t=Math.max(t,2);if(total>=40&&total<=59)t=Math.max(t,3);if(total>=60&&total<=79)t=Math.max(t,4);if(total>=80)t=Math.max(t,5);if(series>=6&&series<=8)t=Math.max(t,1);if(series>=9&&series<=11)t=Math.max(t,2);if(series>=12)t=Math.max(t,3);return t}
+function bonusVol(n){return n>=100?2500:n>=80?2000:n>=60?1500:n>=50?1000:n>=40?500:0}
+function bonusSeries(n){return n>=30?2500:n>=24?2000:n>=18?1500:n>=15?1000:n>=12?500:0}
+function save(){try{localStorage.setItem('vivoMonthlyQuantitiesV1',JSON.stringify(quantities));}catch(e){$('feedback').textContent='No se pudo guardar en este navegador; el cálculo seguirá disponible mientras esta página permanezca abierta.'}}
+function render(){
+ const total=totalCount(),series=seriesCount(),tier=tierIndex(total,series);
+ let commission=0;
+ if(total>=20) models.forEach((m,i)=>{commission+=m.rate[tier]*quantities[i]});
+ const bv=bonusVol(total),bs=bonusSeries(series),grand=commission+bv+bs;
+ $('total').textContent=total;$('series').textContent=series;
+ $('tier').textContent=['0%','50%','75%','100%','110%','120%'][tier];
+ $('topTotal').textContent=money(grand);$('comm').textContent=money(commission);
+ $('bonusV').textContent=money(bv);$('bonusS').textContent=money(bs);$('grand').textContent=money(grand);
+ $('threshold').textContent=total<20?'Aún no alcanzas el mínimo de 20 ventas para cobrar comisiones. Los bonos se muestran según los rangos incluidos.':'Nivel aplicado: '+['0%','50%','75%','100%','110%','120%'][tier]+'.';
+}
+$('zero').addEventListener('click',()=>{
+ if(confirm('¿Borrar todas las cantidades registradas? Esta acción no se puede deshacer.')){
+   models.forEach((m,i)=>quantities[i]=0);
+   save();buildTable();render();$('feedback').textContent='Todas las cantidades se borraron.';
+ }
+});
+buildTable();render();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(err => {
+      console.warn("No se pudo registrar el modo sin conexión:", err);
+    });
+  });
+}
+</script>
+
+</body>
+</html>
